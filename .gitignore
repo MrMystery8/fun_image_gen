@@ -38,6 +38,9 @@ uploads/
 data/
 tmp/
 
+# Design mockups (binary assets not tracked)
+mockups/
+
 # OS/Editor junk
 .DS_Store
 Thumbs.db

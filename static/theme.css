@@ -1,0 +1,168 @@
+:root {
+  /* Color palette */
+  --color-bg: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-text: #111111;
+  --color-primary: #0066ff;
+  --color-on-primary: #ffffff;
+  --color-border: #d0d0d0;
+  --color-danger: #d32f2f;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+
+  /* Spacing scale (8pt) */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+
+  /* Type scale */
+  --font-title: 700 24px/32px 'Space Mono', 'Google Sans Display', sans-serif;
+  --font-section: 600 20px/28px 'Space Mono', 'Google Sans Display', sans-serif;
+  --font-body: 400 16px/24px 'Space Mono', 'Google Sans Display', sans-serif;
+  --font-caption: 400 14px/20px 'Space Mono', 'Google Sans Display', sans-serif;
+
+  /* Elevation */
+  --elevation-1: 0 1px 2px rgba(0,0,0,0.1);
+  --elevation-2: 0 2px 4px rgba(0,0,0,0.15);
+  --elevation-3: 0 4px 8px rgba(0,0,0,0.2);
+
+  transition: background-color .2s, color .2s;
+}
+
+[data-theme='dark'] {
+  --color-bg: #121212;
+  --color-surface: #1e1e1e;
+  --color-text: #ffffff;
+  --color-primary: #4e9eff;
+  --color-on-primary: #000000;
+  --color-border: #333333;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--font-body);
+}
+
+h1 { font: var(--font-title); }
+h2 { font: var(--font-section); }
+p { font: var(--font-body); }
+.caption { font: var(--font-caption); }
+
+/* Components */
+.button {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--elevation-1);
+  transition: background-color .2s, box-shadow .2s, transform .2s;
+}
+.button:hover {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.button:active {
+  transform: scale(0.97);
+  box-shadow: var(--elevation-2);
+}
+.button[disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.button--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  min-height: 32px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font: var(--font-caption);
+}
+.chip--selected {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.slider {
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+  outline: none;
+}
+.slider::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+}
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+}
+
+.toast {
+  position: fixed;
+  bottom: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-2);
+  display: none;
+}
+.toast.is-visible { display: block; }
+
+.bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-surface);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  box-shadow: var(--elevation-3);
+  padding: var(--space-3);
+  transform: translateY(100%);
+  transition: transform .2s;
+}
+.bottom-sheet.is-open { transform: translateY(0); }
+
+.progress-hud {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  color: var(--color-on-primary);
+  font: var(--font-body);
+}
+.progress-hud.is-visible { display: flex; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation-duration: 0s !important; }
+}

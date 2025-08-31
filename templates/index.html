@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gembooth</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
     <script id="modes-data" type="application/json">{{ modes | tojson }}</script>
@@ -15,15 +16,15 @@
             <video id="video" autoplay playsinline></video>
             <img id="upload-preview" alt="Preview" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" />
             <canvas id="canvas" style="display:none;"></canvas>
-            <button id="snap" class="shutter">
+            <button id="snap" class="shutter" aria-label="Take photo">
                 <span class="icon">camera</span>
             </button>
             <div style="position:absolute; top:10px; left:10px; display:flex; gap:8px;">
-              <button id="toggle-source" class="button" title="Switch camera/upload">
+              <button id="toggle-source" class="button" title="Switch source" aria-label="Switch source">
                 <span class="icon">switch_camera</span> <span id="source-label">Camera</span>
               </button>
-              <label class="button" for="file-input" id="upload-label" style="display:none; border:1px solid #444; padding:6px 10px; border-radius:6px;">
-                <span class="icon">upload</span> Choose Image
+              <label class="button" for="file-input" id="upload-label" style="display:none; border:1px solid #444; padding:6px 10px; border-radius:6px;" aria-label="Import photo">
+                <span class="icon">upload</span> Import photo
               </label>
               <input id="file-input" type="file" accept="image/*" style="display:none;" />
             </div>
@@ -38,10 +39,10 @@
             <textarea id="custom-prompt" placeholder="Enter custom prompt" style="display:none;"></textarea>
         </div>
         <div class="results">
-            <ul id="photo-gallery"></ul>
+            <ul id="photo-gallery"><li id="empty-state" class="empty">Let’s make something. Take a photo or import one.</li></ul>
         </div>
         <div class="gif-container">
-            <button id="make-gif">Make GIF</button>
+            <button id="make-gif" class="button button--primary">Create GIF</button>
             <div id="gif-result"></div>
         </div>
     </main>
@@ -182,6 +183,8 @@
             originalImage.src = dataURL;
             galleryItem.appendChild(originalImage);
             photoGallery.appendChild(galleryItem);
+            const emptyState = document.getElementById('empty-state');
+            if (emptyState) emptyState.remove();
 
 
             fetch('/generate', {
@@ -198,7 +201,7 @@
             .then(async response => {
                 if (!response.ok) {
                     const err = await response.json().catch(() => ({ error: 'Server error' }));
-                    throw new Error(err.error || 'Failed to generate image');
+                    throw new Error(err.error || 'Image generation failed');
                 }
                 return response.json();
             })
@@ -236,7 +239,7 @@
                   errorMsg.style.whiteSpace = 'pre-wrap';
                   errorMsg.style.fontSize = '14px';
                   errorMsg.style.color = '#f66';
-                  errorMsg.textContent = data.error || 'No image returned by model';
+                  errorMsg.textContent = data.error || 'No image returned by model. Retry.';
                   outputContainer.appendChild(errorMsg);
                 }
 
@@ -270,7 +273,11 @@
                 galleryItem.innerHTML = '';
                 const errorMsg = document.createElement('div');
                 errorMsg.style.color = '#f66';
-                errorMsg.textContent = `Error: ${err.message}`;
+                if (err.message && err.message.includes('download')) {
+                  errorMsg.textContent = 'Model download failed. Retry • Manage storage.';
+                } else {
+                  errorMsg.textContent = `Error: ${err.message}. Retry.`;
+                }
                 galleryItem.appendChild(errorMsg);
             });
         });
@@ -298,7 +305,7 @@
                 gifResult.appendChild(gifImage);
             })
             .catch(err => {
-                gifResult.textContent = `Error: ${err.message}`;
+                gifResult.textContent = `Error: ${err.message}. Retry.`;
             });
         });
 
