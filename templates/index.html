@@ -1,59 +1,58 @@
-
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gembooth</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
     <script id="modes-data" type="application/json">{{ modes | tojson }}</script>
 </head>
 <body>
-    <main>
-        <div class="video-container">
+    <main class="app">
+        <section class="preview">
             <video id="video" autoplay playsinline></video>
             <img id="upload-preview" alt="Preview" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" />
             <canvas id="canvas" style="display:none;"></canvas>
-            <button id="snap" class="shutter" aria-label="Take photo">
-                <span class="icon">camera</span>
-            </button>
-            <div style="position:absolute; top:10px; left:10px; display:flex; gap:8px;">
+            <div class="source-controls">
               <button id="toggle-source" class="button" title="Switch source" aria-label="Switch source">
-                <span class="icon">switch_camera</span> <span id="source-label">Camera</span>
+                <span class="icon">switch_camera</span><span id="source-label">Camera</span>
               </button>
-              <label class="button" for="file-input" id="upload-label" style="display:none; border:1px solid #444; padding:6px 10px; border-radius:6px;" aria-label="Import photo">
-                <span class="icon">upload</span> Import photo
+              <label class="button" for="file-input" id="upload-label" aria-label="Import photo" style="display:none;">
+                <span class="icon">upload</span>Import
               </label>
               <input id="file-input" type="file" accept="image/*" style="display:none;" />
             </div>
-        </div>
-        <div class="controls">
-            <select id="mode">
+            <button id="snap" class="shutter" aria-label="Take photo">
+                <span class="icon">photo_camera</span>
+            </button>
+        </section>
+        <section class="controls">
+            <select id="mode" aria-label="Style">
                 {% for key, value in modes.items() %}
                     <option value="{{ key }}">{{ value.emoji }} {{ value.name }}</option>
                 {% endfor %}
                 <option value="custom">✏️ Custom</option>
             </select>
-            <textarea id="custom-prompt" placeholder="Enter custom prompt" style="display:none;"></textarea>
-        </div>
-        <div class="results">
+            <textarea id="custom-prompt" placeholder="Describe your style" aria-label="Custom prompt" style="display:none;"></textarea>
+        </section>
+        <section class="gallery">
             <ul id="photo-gallery"><li id="empty-state" class="empty">Let’s make something. Take a photo or import one.</li></ul>
-        </div>
-        <div class="gif-container">
+        </section>
+        <section class="export">
             <button id="make-gif" class="button button--primary">Create GIF</button>
             <div id="gif-result"></div>
-        </div>
+        </section>
     </main>
 
-    <!-- Fullscreen lightbox for viewing images -->
     <div id="lightbox" class="lightbox" aria-hidden="true" style="display:none;">
-      <button id="lightbox-close" class="lightbox-close" aria-label="Close">×</button>
+      <button id="lightbox-close" class="lightbox-close" aria-label="Close"><span class="icon">close</span></button>
       <img id="lightbox-img" alt="Full view" />
       <div class="lightbox-actions">
         <a id="lightbox-download" class="button" href="#" download>
-          <span class="icon">download</span> Download
+          <span class="icon">download</span>Download
         </a>
       </div>
     </div>
@@ -78,7 +77,6 @@
         let captureSource = 'camera'; // 'camera' | 'upload'
         let stream = null;
 
-        // Get access to the camera
         async function startCamera() {
           if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
           try {
@@ -86,7 +84,6 @@
             video.srcObject = stream;
             await video.play();
           } catch (e) {
-            // If user blocks camera, switch to upload mode
             captureSource = 'upload';
             updateSourceUI();
           }
@@ -132,10 +129,8 @@
           };
           reader.readAsDataURL(file);
         });
-        // Initial UI state
         updateSourceUI();
 
-        // Handle mode selection
         modeSelector.addEventListener('change', () => {
             if (modeSelector.value === 'custom') {
                 customPrompt.style.display = 'block';
@@ -144,7 +139,6 @@
             }
         });
 
-        // Capture a photo
         snap.addEventListener('click', function() {
             let dataURL;
             if (captureSource === 'camera') {
@@ -158,7 +152,6 @@
                     alert('Please choose an image to upload');
                     return;
                 }
-                // Draw upload image to canvas to normalize format/size
                 const img = uploadPreview;
                 const w = img.naturalWidth || 512;
                 const h = img.naturalHeight || 512;
@@ -167,7 +160,7 @@
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                 dataURL = canvas.toDataURL('image/jpeg');
             }
-            
+
             const selectedMode = modeSelector.value;
             let promptText = "";
             if (selectedMode === 'custom') {
@@ -176,7 +169,6 @@
                 promptText = modesData[selectedMode].prompt;
             }
 
-            // Show a loading indicator
             const galleryItem = document.createElement('li');
             galleryItem.classList.add('isBusy');
             const originalImage = document.createElement('img');
@@ -186,14 +178,13 @@
             const emptyState = document.getElementById('empty-state');
             if (emptyState) emptyState.remove();
 
-
             fetch('/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    image: dataURL, 
+                body: JSON.stringify({
+                    image: dataURL,
                     prompt: promptText,
                     mode: selectedMode
                 })
@@ -207,15 +198,15 @@
             })
             .then(data => {
                 galleryItem.classList.remove('isBusy');
-                galleryItem.innerHTML = ''; // Clear loading indicator
-                
+                galleryItem.innerHTML = '';
+
                 const inputContainer = document.createElement('div');
                 inputContainer.classList.add('photo');
                 const inputImage = document.createElement('img');
                 inputImage.src = data.input_url;
                 inputImage.alt = 'Original photo';
                 inputContainer.appendChild(inputImage);
-                
+
                 const outputContainer = document.createElement('div');
                 outputContainer.classList.add('photo');
                 if (data.output_url) {
@@ -223,7 +214,6 @@
                   generatedImage.src = data.output_url;
                   generatedImage.alt = 'Generated photo';
                   outputContainer.appendChild(generatedImage);
-                  // Quick action: download
                   const actions = document.createElement('div');
                   actions.className = 'photo-actions';
                   const dl = document.createElement('a');
@@ -253,7 +243,6 @@
 
                 photos.push(data.id);
 
-                // Enable full-view on click
                 const openLightbox = (src) => {
                   const lb = document.getElementById('lightbox');
                   const lbImg = document.getElementById('lightbox-img');
@@ -282,7 +271,6 @@
             });
         });
 
-        // Make a GIF
         makeGifButton.addEventListener('click', () => {
             fetch('/make_gif', {
                 method: 'POST',
@@ -311,7 +299,6 @@
 
     </script>
     <script>
-      // Lightbox interactions
       (function(){
         const lb = document.getElementById('lightbox');
         const closeBtn = document.getElementById('lightbox-close');
