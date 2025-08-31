@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gembooth</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <script id="modes-data" type="application/json">{{ modes | tojson }}</script>
+</head>
+<body>
+    <main>
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <img id="upload-preview" alt="Preview" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" />
+            <canvas id="canvas" style="display:none;"></canvas>
+            <button id="snap" class="shutter">
+                <span class="icon">camera</span>
+            </button>
+            <div style="position:absolute; top:10px; left:10px; display:flex; gap:8px;">
+              <button id="toggle-source" class="button" title="Switch camera/upload">
+                <span class="icon">switch_camera</span> <span id="source-label">Camera</span>
+              </button>
+              <label class="button" for="file-input" id="upload-label" style="display:none; border:1px solid #444; padding:6px 10px; border-radius:6px;">
+                <span class="icon">upload</span> Choose Image
+              </label>
+              <input id="file-input" type="file" accept="image/*" style="display:none;" />
+            </div>
+        </div>
+        <div class="controls">
+            <select id="mode">
+                {% for key, value in modes.items() %}
+                    <option value="{{ key }}">{{ value.emoji }} {{ value.name }}</option>
+                {% endfor %}
+                <option value="custom">✏️ Custom</option>
+            </select>
+            <textarea id="custom-prompt" placeholder="Enter custom prompt" style="display:none;"></textarea>
+        </div>
+        <div class="results">
+            <ul id="photo-gallery"></ul>
+        </div>
+        <div class="gif-container">
+            <button id="make-gif">Make GIF</button>
+            <div id="gif-result"></div>
+        </div>
+    </main>
+
+    <!-- Fullscreen lightbox for viewing images -->
+    <div id="lightbox" class="lightbox" aria-hidden="true" style="display:none;">
+      <button id="lightbox-close" class="lightbox-close" aria-label="Close">×</button>
+      <img id="lightbox-img" alt="Full view" />
+      <div class="lightbox-actions">
+        <a id="lightbox-download" class="button" href="#" download>
+          <span class="icon">download</span> Download
+        </a>
+      </div>
+    </div>
+
+    <script>
+        const modesData = JSON.parse(document.getElementById('modes-data').textContent);
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const snap = document.getElementById('snap');
+        const photoGallery = document.getElementById('photo-gallery');
+        const modeSelector = document.getElementById('mode');
+        const customPrompt = document.getElementById('custom-prompt');
+        const makeGifButton = document.getElementById('make-gif');
+        const gifResult = document.getElementById('gif-result');
+        const toggleSourceBtn = document.getElementById('toggle-source');
+        const sourceLabel = document.getElementById('source-label');
+        const fileInput = document.getElementById('file-input');
+        const uploadLabel = document.getElementById('upload-label');
+        const uploadPreview = document.getElementById('upload-preview');
+
+        const photos = [];
+        let captureSource = 'camera'; // 'camera' | 'upload'
+        let stream = null;
+
+        // Get access to the camera
+        async function startCamera() {
+          if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            await video.play();
+          } catch (e) {
+            // If user blocks camera, switch to upload mode
+            captureSource = 'upload';
+            updateSourceUI();
+          }
+        }
+        startCamera();
+
+        function stopCamera() {
+          if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+          }
+          video.srcObject = null;
+        }
+
+        function updateSourceUI() {
+          if (captureSource === 'camera') {
+            video.style.display = '';
+            uploadPreview.style.display = 'none';
+            uploadLabel.style.display = 'none';
+            sourceLabel.textContent = 'Camera';
+            if (!stream) startCamera();
+          } else {
+            video.style.display = 'none';
+            uploadPreview.style.display = '';
+            uploadLabel.style.display = '';
+            sourceLabel.textContent = 'Upload';
+            stopCamera();
+          }
+        }
+
+        toggleSourceBtn.addEventListener('click', () => {
+          captureSource = captureSource === 'camera' ? 'upload' : 'camera';
+          updateSourceUI();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+          const files = e && e.target && e.target.files ? e.target.files : null;
+          const file = files && files.length ? files[0] : null;
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            uploadPreview.src = ev.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+        // Initial UI state
+        updateSourceUI();
+
+        // Handle mode selection
+        modeSelector.addEventListener('change', () => {
+            if (modeSelector.value === 'custom') {
+                customPrompt.style.display = 'block';
+            } else {
+                customPrompt.style.display = 'none';
+            }
+        });
+
+        // Capture a photo
+        snap.addEventListener('click', function() {
+            let dataURL;
+            if (captureSource === 'camera') {
+                if (!video.videoWidth || !video.videoHeight) return;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+                dataURL = canvas.toDataURL('image/jpeg');
+            } else {
+                if (!uploadPreview.src) {
+                    alert('Please choose an image to upload');
+                    return;
+                }
+                // Draw upload image to canvas to normalize format/size
+                const img = uploadPreview;
+                const w = img.naturalWidth || 512;
+                const h = img.naturalHeight || 512;
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                dataURL = canvas.toDataURL('image/jpeg');
+            }
+            
+            const selectedMode = modeSelector.value;
+            let promptText = "";
+            if (selectedMode === 'custom') {
+                promptText = customPrompt.value;
+            } else {
+                promptText = modesData[selectedMode].prompt;
+            }
+
+            // Show a loading indicator
+            const galleryItem = document.createElement('li');
+            galleryItem.classList.add('isBusy');
+            const originalImage = document.createElement('img');
+            originalImage.src = dataURL;
+            galleryItem.appendChild(originalImage);
+            photoGallery.appendChild(galleryItem);
+
+
+            fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    image: dataURL, 
+                    prompt: promptText,
+                    mode: selectedMode
+                })
+            })
+            .then(async response => {
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({ error: 'Server error' }));
+                    throw new Error(err.error || 'Failed to generate image');
+                }
+                return response.json();
+            })
+            .then(data => {
+                galleryItem.classList.remove('isBusy');
+                galleryItem.innerHTML = ''; // Clear loading indicator
+                
+                const inputContainer = document.createElement('div');
+                inputContainer.classList.add('photo');
+                const inputImage = document.createElement('img');
+                inputImage.src = data.input_url;
+                inputImage.alt = 'Original photo';
+                inputContainer.appendChild(inputImage);
+                
+                const outputContainer = document.createElement('div');
+                outputContainer.classList.add('photo');
+                if (data.output_url) {
+                  const generatedImage = document.createElement('img');
+                  generatedImage.src = data.output_url;
+                  generatedImage.alt = 'Generated photo';
+                  outputContainer.appendChild(generatedImage);
+                  // Quick action: download
+                  const actions = document.createElement('div');
+                  actions.className = 'photo-actions';
+                  const dl = document.createElement('a');
+                  dl.href = data.output_url;
+                  dl.download = '';
+                  dl.className = 'button';
+                  dl.innerHTML = '<span class="icon">download</span>';
+                  actions.appendChild(dl);
+                  outputContainer.appendChild(actions);
+                } else {
+                  const errorMsg = document.createElement('div');
+                  errorMsg.style.padding = '10px';
+                  errorMsg.style.whiteSpace = 'pre-wrap';
+                  errorMsg.style.fontSize = '14px';
+                  errorMsg.style.color = '#f66';
+                  errorMsg.textContent = data.error || 'No image returned by model';
+                  outputContainer.appendChild(errorMsg);
+                }
+
+                galleryItem.appendChild(inputContainer);
+                galleryItem.appendChild(outputContainer);
+
+                const emoji = document.createElement('p');
+                emoji.classList.add('emoji');
+                emoji.innerText = data.emoji;
+                galleryItem.appendChild(emoji);
+
+                photos.push(data.id);
+
+                // Enable full-view on click
+                const openLightbox = (src) => {
+                  const lb = document.getElementById('lightbox');
+                  const lbImg = document.getElementById('lightbox-img');
+                  const lbDl = document.getElementById('lightbox-download');
+                  lbImg.src = src;
+                  lbDl.href = src;
+                  lb.style.display = 'flex';
+                  lb.classList.add('is-open');
+                  lb.setAttribute('aria-hidden', 'false');
+                };
+                inputImage.addEventListener('click', () => openLightbox(inputImage.src));
+                const genImg = outputContainer.querySelector('img');
+                if (genImg) genImg.addEventListener('click', () => openLightbox(genImg.src));
+            })
+            .catch(err => {
+                galleryItem.classList.remove('isBusy');
+                galleryItem.innerHTML = '';
+                const errorMsg = document.createElement('div');
+                errorMsg.style.color = '#f66';
+                errorMsg.textContent = `Error: ${err.message}`;
+                galleryItem.appendChild(errorMsg);
+            });
+        });
+
+        // Make a GIF
+        makeGifButton.addEventListener('click', () => {
+            fetch('/make_gif', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ photo_ids: photos })
+            })
+            .then(async response => {
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({ error: 'Server error' }));
+                    throw new Error(err.error || 'Failed to make GIF');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const gifImage = document.createElement('img');
+                gifImage.src = data.gif_url;
+                gifResult.innerHTML = '';
+                gifResult.appendChild(gifImage);
+            })
+            .catch(err => {
+                gifResult.textContent = `Error: ${err.message}`;
+            });
+        });
+
+    </script>
+    <script>
+      // Lightbox interactions
+      (function(){
+        const lb = document.getElementById('lightbox');
+        const closeBtn = document.getElementById('lightbox-close');
+        function close(){
+          lb.classList.remove('is-open');
+          lb.setAttribute('aria-hidden', 'true');
+          lb.style.display = 'none';
+        }
+        closeBtn.addEventListener('click', close);
+        lb.addEventListener('click', (e) => {
+          if (e.target === lb) close();
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') close();
+        });
+      })();
+    </script>
+</body>
+</html>

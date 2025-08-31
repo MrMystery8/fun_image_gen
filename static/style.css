@@ -1,0 +1,331 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+* ::selection {
+  background: #fff;
+  color: #111;
+}
+:root {
+  background: #000;
+  color: #fff;
+  font-family:
+    Space Mono,
+    Google Sans Display,
+    sans-serif;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 400;
+}
+li {
+  list-style: none;
+}
+input,
+textarea {
+  font-family:
+    Space Mono,
+    Google Sans Display,
+    sans-serif;
+  background: none;
+  color: #fff;
+  border: none;
+  outline: none;
+  font-size: 18px;
+  resize: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+input::placeholder,
+textarea::placeholder {
+  -webkit-user-select: none;
+  user-select: none;
+}
+select {
+  appearance: none;
+  font-family: inherit;
+  padding: 10px;
+  background: #111;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+button {
+  font-family:
+    Space Mono,
+    Google Sans Display,
+    sans-serif;
+  background: none;
+  color: #fff;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+button:focus {
+  outline: none;
+}
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button .icon {
+  display: block;
+}
+.button {
+  display: inline-flex;
+  padding: 10px;
+  border-radius: 8px;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  color: #fffc;
+}
+.icon {
+  font-family: Material Symbols Outlined;
+  font-weight: 300;
+  line-height: 1;
+}
+main {
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.video-container {
+  overflow: hidden;
+  position: relative;
+  flex: 1;
+  background-image: linear-gradient(to bottom, #000, #111);
+}
+.video-container video {
+  display: block;
+  margin: 0 auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: cover;
+  transition: filter 0.2s;
+  transform: rotateY(180deg);
+  aspect-ratio: 1;
+}
+
+.shutter {
+  background: #000000b3;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  padding: 10px;
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
+  transition: all 0.2s;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.shutter .icon {
+  font-size: 42px;
+  color: #ddd;
+  transition: color 0.2s;
+}
+.shutter:hover {
+  scale: 1.1;
+}
+.shutter:hover .icon {
+  color: #fff;
+}
+.shutter:active {
+  scale: 0.8;
+  rotate: 10deg;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    background: #111;
+}
+
+.results {
+  display: flex;
+  position: relative;
+  height: clamp(200px, 25dvh, 300px);
+  border-top: 1px solid #333;
+  padding: 15px;
+  overflow: auto;
+  background: #111;
+}
+.results ul {
+  display: flex;
+  gap: 10px;
+}
+
+.results li {
+  aspect-ratio: 1;
+  height: 100%;
+  transition: opacity 0.3s;
+  position: relative;
+  display: flex;
+  gap: 5px;
+}
+
+.results li .photo {
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.results li img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.results li.isBusy {
+  position: relative;
+}
+.results li.isBusy img {
+  filter: brightness(0.4);
+}
+.results li.isBusy:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 25%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite ease-in-out;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.gif-container {
+    padding: 10px;
+    text-align: center;
+    background: #111;
+}
+
+#make-gif {
+    background: #e64a19;
+    border: 2px solid #fff;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* Lightbox overlay for full image view */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox.is-open { display: flex; }
+.lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #000000b3;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.lightbox-actions {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+/* Quick actions on photo */
+.photo-actions {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  display: flex;
+  gap: 6px;
+}
+
+/* Modal styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.9);
+}
+
+.modal-content {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.close {
+  position: absolute;
+  top: 15px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.close:hover,
+.close:focus {
+  color: #bbb;
+  text-decoration: none;
+  cursor: pointer;
+}
